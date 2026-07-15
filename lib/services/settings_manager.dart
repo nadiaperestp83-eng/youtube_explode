@@ -36,14 +36,6 @@ final playNextSongAutomatically = ValueNotifier<bool>(
   Hive.box('settings').get('playNextSongAutomatically', defaultValue: false),
 );
 
-final useSystemColor = ValueNotifier<bool>(
-  Hive.box('settings').get('useSystemColor', defaultValue: true),
-);
-
-final usePureBlackColor = ValueNotifier<bool>(
-  Hive.box('settings').get('usePureBlackColor', defaultValue: false),
-);
-
 final offlineMode = ValueNotifier<bool>(
   Hive.box('settings').get('offlineMode', defaultValue: false),
 );
@@ -104,10 +96,6 @@ String playlistSortSetting = Hive.box(
 String offlineSortSetting = Hive.box(
   'settings',
 ).get('offlineSortType', defaultValue: OfflineSortType.default_.name);
-
-Color primaryColorSetting = Color(
-  Hive.box('settings').get('accentColor', defaultValue: 0xff91cef4),
-);
 
 final shuffleNotifier = ValueNotifier<bool>(
   Hive.box('settings').get('shuffleEnabled', defaultValue: false),
