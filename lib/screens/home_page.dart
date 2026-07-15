@@ -19,6 +19,7 @@
  *     please visit: https://github.com/gokadzev/Musify
  */
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -35,7 +36,6 @@ import 'package:musify/utilities/listening_stats_utils.dart';
 import 'package:musify/widgets/announcement_box.dart';
 import 'package:musify/widgets/listening_recap_card.dart';
 import 'package:musify/widgets/mini_player_bottom_space.dart';
-import 'package:musify/widgets/playlist_cube.dart';
 import 'package:musify/widgets/section_header.dart';
 import 'package:musify/widgets/song_bar.dart';
 
@@ -73,140 +73,267 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
   Widget build(BuildContext context) {
     final playlistHeight = MediaQuery.sizeOf(context).height * 0.25 / 1.1;
     return Scaffold(
-      appBar: AppBar(title: const Text('Musify.')),
-      body: SingleChildScrollView(
-        padding: commonSingleChildScrollViewPadding,
-        child: Column(
-          children: [
-            ValueListenableBuilder<String?>(
-              valueListenable: announcementURL,
-              builder: (_, _url, __) {
-                if (_url == null) return const SizedBox.shrink();
-                final isSponsorshipAnnouncement = isSponsorshipAnnouncementUrl(
-                  _url,
-                );
-                final _message = isSponsorshipAnnouncement
-                    ? context.l10n!.sponsorProject
-                    : context.l10n!.newAnnouncement;
-                final _icon = isSponsorshipAnnouncement
-                    ? FluentIcons.heart_24_filled
-                    : FluentIcons.megaphone_24_filled;
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: commonSingleChildScrollViewPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGreetingHeader(context),
+              const SizedBox(height: 20),
+              ValueListenableBuilder<String?>(
+                valueListenable: announcementURL,
+                builder: (_, _url, __) {
+                  if (_url == null) return const SizedBox.shrink();
+                  final isSponsorshipAnnouncement =
+                      isSponsorshipAnnouncementUrl(_url);
+                  final _message = isSponsorshipAnnouncement
+                      ? context.l10n!.sponsorProject
+                      : context.l10n!.newAnnouncement;
+                  final _icon = isSponsorshipAnnouncement
+                      ? FluentIcons.heart_24_filled
+                      : FluentIcons.megaphone_24_filled;
 
-                return AnnouncementBox(
-                  message: _message,
-                  url: _url,
-                  icon: _icon,
-                  onDismiss: () async {
-                    announcementURL.value = null;
-                  },
-                );
-              },
-            ),
-            _buildSuggestedPlaylists(playlistHeight),
-            _buildSuggestedPlaylists(playlistHeight, showOnlyLiked: true),
-            _buildCurrentMonthRecapSection(),
-            _buildRecommendedSongsSection(),
-            const MiniPlayerBottomSpace(),
-          ],
+                  return AnnouncementBox(
+                    message: _message,
+                    url: _url,
+                    icon: _icon,
+                    onDismiss: () async {
+                      announcementURL.value = null;
+                    },
+                  );
+                },
+              ),
+              _buildFavoriteArtistsSection(),
+              _buildRecentPlayedSection(playlistHeight),
+              _buildCurrentMonthRecapSection(),
+              _buildRecommendedSongsSection(),
+              const MiniPlayerBottomSpace(),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSuggestedPlaylists(
-    double playlistHeight, {
-    bool showOnlyLiked = false,
-  }) {
-    if (showOnlyLiked) {
-      return ValueListenableBuilder<List<Map>>(
-        valueListenable: userLikedPlaylists,
-        builder: (_, likedPlaylists, __) => _buildSuggestedPlaylistsSection(
-          playlistHeight,
-          likedPlaylists
-              .where((playlist) => !isArtistPlaylist(playlist))
-              .take(recommendedCubesNumber)
-              .toList(),
-          showOnlyLiked: true,
-        ),
-      );
-    }
-
-    return AsyncLoader<List<dynamic>>(
-      future: _suggestedPlaylistsFuture,
-      builder: (context, playlists) =>
-          _buildSuggestedPlaylistsSection(playlistHeight, playlists),
-    );
-  }
-
-  Widget _buildSuggestedPlaylistsSection(
-    double playlistHeight,
-    List<dynamic> playlists, {
-    bool showOnlyLiked = false,
-  }) {
-    if (playlists.isEmpty) return const SizedBox.shrink();
-
-    final sectionTitle = showOnlyLiked
-        ? context.l10n!.backToFavorites
-        : context.l10n!.suggestedPlaylists;
-    final itemsNumber = playlists.length.clamp(0, recommendedCubesNumber);
-    final isLargeScreen = MediaQuery.of(context).size.width > 480;
-
-    return Column(
-      children: [
-        SectionHeader(
-          title: sectionTitle,
-          icon: showOnlyLiked
-              ? FluentIcons.heart_24_filled
-              : FluentIcons.list_24_filled,
-        ),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: playlistHeight),
-          child: isLargeScreen
-              ? _buildHorizontalList(playlists, itemsNumber, playlistHeight)
-              : _buildCarouselView(playlists, itemsNumber, playlistHeight),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHorizontalList(
-    List<dynamic> playlists,
-    int itemCount,
-    double height,
-  ) {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        final playlist = playlists[index];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: GestureDetector(
-            onTap: () => context.push('/home/playlist/${playlist['ytid']}'),
-            child: PlaylistCube(playlist, size: height),
+  Widget _buildGreetingHeader(BuildContext context) {
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            _greeting(),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
           ),
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Notifications',
+                onPressed: () {
+                  // TODO: sem uma tela/rota de notificações definida ainda.
+                },
+                icon: const Icon(FluentIcons.alert_24_regular),
+              ),
+              IconButton(
+                tooltip: context.l10n!.timeMachine,
+                onPressed: () => context.push('/home/timeMachine'),
+                icon: const Icon(FluentIcons.history_24_regular),
+              ),
+              IconButton(
+                tooltip: 'Settings',
+                onPressed: () {
+                  // TODO: me diga a rota real de settings_page.dart
+                  // (ex: context.push('/settings')) que eu conecto aqui.
+                },
+                icon: const Icon(FluentIcons.settings_24_regular),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFavoriteArtistsSection() {
+    return ValueListenableBuilder<List<Map>>(
+      valueListenable: userLikedPlaylists,
+      builder: (_, likedPlaylists, __) {
+        final artistPlaylists = likedPlaylists
+            .where((playlist) => isArtistPlaylist(playlist))
+            .toList();
+
+        if (artistPlaylists.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'Your favorite artist',
+              icon: FluentIcons.person_24_filled,
+            ),
+            SizedBox(
+              height: 104,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: artistPlaylists.length,
+                itemBuilder: (context, index) {
+                  final playlist = artistPlaylists[index];
+                  final imageUrl =
+                      playlist['image'] ??
+                      playlist['lowResImage'] ??
+                      playlist['highResImage'];
+                  final title = playlist['title']?.toString() ?? '';
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: GestureDetector(
+                      onTap: () =>
+                          context.push('/home/playlist/${playlist['ytid']}'),
+                      child: SizedBox(
+                        width: 72,
+                        child: Column(
+                          children: [
+                            ClipOval(
+                              child: SizedBox(
+                                width: 64,
+                                height: 64,
+                                child: imageUrl != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: imageUrl.toString(),
+                                        fit: BoxFit.cover,
+                                        errorWidget: (_, __, ___) =>
+                                            const Icon(
+                                              FluentIcons.person_24_filled,
+                                            ),
+                                      )
+                                    : const Icon(
+                                        FluentIcons.person_24_filled,
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildCarouselView(
-    List<dynamic> playlists,
-    int itemCount,
-    double height,
-  ) {
-    return CarouselView.weighted(
-      flexWeights: const <int>[3, 2, 1],
-      itemSnapping: true,
-      onTap: (index) =>
-          context.push('/home/playlist/${playlists[index]['ytid']}'),
-      children: List.generate(itemCount, (index) {
-        return PlaylistCube(playlists[index], size: height * 2);
-      }),
+  Widget _buildRecentPlayedSection(double playlistHeight) {
+    return AsyncLoader<List<dynamic>>(
+      future: _suggestedPlaylistsFuture,
+      builder: (context, playlists) {
+        if (playlists.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SectionHeader(
+              title: 'Recent played',
+              icon: FluentIcons.list_24_filled,
+            ),
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: playlists.length,
+                itemBuilder: (context, index) {
+                  final playlist = playlists[index];
+                  final imageUrl =
+                      playlist['image'] ??
+                      playlist['lowResImage'] ??
+                      playlist['highResImage'];
+                  final title = playlist['title']?.toString() ?? '';
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: GestureDetector(
+                      onTap: () =>
+                          context.push('/home/playlist/${playlist['ytid']}'),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          width: 160,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              imageUrl != null
+                                  ? CachedNetworkImage(
+                                      imageUrl: imageUrl.toString(),
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) =>
+                                          Container(color: Colors.grey[900]),
+                                    )
+                                  : Container(color: Colors.grey[900]),
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.75),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Text(
+                                    title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
