@@ -156,11 +156,8 @@ class _HomePageState extends State<HomePage> {
                 icon: const Icon(FluentIcons.history_24_regular),
               ),
               IconButton(
-                tooltip: 'Settings',
-                onPressed: () {
-                  // TODO: me diga a rota real de settings_page.dart
-                  // (ex: context.push('/settings')) que eu conecto aqui.
-                },
+                tooltip: context.l10n!.settings,
+                onPressed: () => context.push('/settings'),
                 icon: const Icon(FluentIcons.settings_24_regular),
               ),
             ],
