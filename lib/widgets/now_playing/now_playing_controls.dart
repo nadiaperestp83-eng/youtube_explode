@@ -54,10 +54,18 @@ class NowPlayingControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDesktop = size.width > 800;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final titleFontSize = getResponsiveTitleFontSize(size);
     final artistFontSize = getResponsiveArtistFontSize(size);
     final canOpenArtist = _canOpenArtist(metadata);
+
+    // Redesign: branco no tema escuro (antes herdava colorScheme.secondary,
+    // que fica rosa/pastel quando a cor din창mica do sistema é ativada).
+    final titleColor = isDark ? Colors.white : colorScheme.secondary;
+    final artistColor = isDark
+        ? Colors.white.withValues(alpha: 0.7)
+        : colorScheme.onSurfaceVariant;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -92,7 +100,7 @@ class NowPlayingControls extends StatelessWidget {
                 children: [
                   MarqueeTextWidget(
                     text: metadata.title,
-                    fontColor: colorScheme.secondary,
+                    fontColor: titleColor,
                     fontSize: titleFontSize * fontScale,
                     fontWeight: FontWeight.bold,
                   ),
@@ -105,7 +113,7 @@ class NowPlayingControls extends StatelessWidget {
                           : null,
                       child: MarqueeTextWidget(
                         text: metadata.artist!,
-                        fontColor: colorScheme.onSurfaceVariant,
+                        fontColor: artistColor,
                         fontSize: artistFontSize * fontScale,
                         fontWeight: FontWeight.w500,
                       ),
