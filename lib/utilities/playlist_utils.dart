@@ -106,7 +106,7 @@ class PlaylistUtils {
 
   /// Check if a playlist already exists by title and song ytids.
   static bool playlistExists(
-    Map<String, dynamic> playlist,
+    Map playlist,
     List<String> incomingYtids,
     List<dynamic> playlistsToCheck,
   ) {
