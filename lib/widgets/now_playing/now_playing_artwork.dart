@@ -57,7 +57,9 @@ class NowPlayingArtwork extends StatelessWidget {
         ? screenWidth * 0.80
         : screenWidth * 0.65;
 
-    const borderRadius = 24.0;
+    // Redesign: capa circular perfeita (raio = metade do tamanho),
+    // em vez do cantos arredondados anteriores.
+    final borderRadius = imageSize / 2;
 
     return FlipCard(
       rotateSide: RotateSide.right,
@@ -100,68 +102,71 @@ class NowPlayingArtwork extends StatelessWidget {
             ),
           ],
         ),
-        child: AsyncLoader<String?>(
-          future: getSongLyrics(metadata.artist, metadata.title),
-          emptyWidget: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  FluentIcons.text_quote_24_regular,
-                  size: 48,
-                  color: colorScheme.onSecondaryContainer.withValues(
-                    alpha: 0.5,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(borderRadius),
+          child: AsyncLoader<String?>(
+            future: getSongLyrics(metadata.artist, metadata.title),
+            emptyWidget: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    FluentIcons.text_quote_24_regular,
+                    size: 48,
+                    color: colorScheme.onSecondaryContainer.withValues(
+                      alpha: 0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  context.l10n!.lyricsNotAvailable,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.onSecondaryContainer,
+                  const SizedBox(height: 16),
+                  Text(
+                    context.l10n!.lyricsNotAvailable,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.onSecondaryContainer,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          errorBuilder: (ctx, error, stack) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  FluentIcons.text_quote_24_regular,
-                  size: 48,
-                  color: colorScheme.onSecondaryContainer.withValues(
-                    alpha: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  context.l10n!.lyricsNotAvailable,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.onSecondaryContainer,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          builder: (context, lyrics) => SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            physics: const BouncingScrollPhysics(),
-            child: Text(
-              lyrics ?? context.l10n!.lyricsNotAvailable,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSecondaryContainer,
-                height: 1.6,
+                ],
               ),
-              textAlign: TextAlign.center,
+            ),
+            errorBuilder: (ctx, error, stack) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    FluentIcons.text_quote_24_regular,
+                    size: 48,
+                    color: colorScheme.onSecondaryContainer.withValues(
+                      alpha: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.l10n!.lyricsNotAvailable,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.onSecondaryContainer,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            builder: (context, lyrics) => SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              physics: const BouncingScrollPhysics(),
+              child: Text(
+                lyrics ?? context.l10n!.lyricsNotAvailable,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSecondaryContainer,
+                  height: 1.6,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ),
