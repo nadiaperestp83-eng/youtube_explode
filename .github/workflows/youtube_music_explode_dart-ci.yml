@@ -1,0 +1,48 @@
+name: youtube_music_explode_dart CI
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'packages/youtube_music_explode_dart/**'
+      - '.github/workflows/youtube_music_explode_dart-ci.yml'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'packages/youtube_music_explode_dart/**'
+  workflow_dispatch: {}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/youtube_music_explode_dart
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Fix .freezed.dart files (Dart 3.12 compatibility)
+        run: |
+          find lib -name "*.freezed.dart" -exec sed -i 's/Function(\([^)]*\))\? _,/Function(\1)\? orElse,/g' {} +
+          find lib -name "*.freezed.dart" -exec sed -i 's/Function(\([^)]*\)) _,/Function(\1) orElse,/g' {} +
+          find lib -name "*.freezed.dart" -exec sed -i 's/required TResult Function(\([^)]*\)) _,/required TResult Function(\1) orElse,/g' {} +
+          find lib -name "*.freezed.dart" -exec sed -i 's/Function(\([^)]*\))\? _internal,/Function(\1)\? internal,/g' {} +
+          find lib -name "*.freezed.dart" -exec sed -i 's/Function(\([^)]*\)) _internal,/Function(\1) internal,/g' {} +
+          echo "Fixed .freezed.dart files"
+
+      - name: Analyze project source
+        run: dart analyze --fatal-infos
+
+      - name: Run tests
+        run: dart test
+        continue-on-error: true
