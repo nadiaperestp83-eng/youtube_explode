@@ -10,6 +10,7 @@ dependencies:
   youtube_explode_dart:
     path: ../youtube_explode_dart
 dev_dependencies:
-  build_runner: ^2.15.2
-  freezed: ^3.2.5
-  json_serializable: ^6.9.5   # se usar, cheque a versão mais recente também
+  build_runner: ^2.4.6
+  freezed: ^2.4.7
+  json_serializable: ^6.7.1
+  source_gen: ^1.4.0
